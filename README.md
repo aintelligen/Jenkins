@@ -2,43 +2,79 @@
 
 Jenkins 自动化部署
 
-## 准备工作 配置 SSH
-
-[生成 SSH](https://help.aliyun.com/document_detail/51798.html?spm=5176.2020520101.205.d51798.5fa64df5HxA9Tr)  
-创建 SSH  
-绑定 SSH  
-重启服务器
-
-测试 putty SSH 链接服务器
-
-## Jenkins 配置
+linux 操作
 
 ```shell
-#启动 jenkins
-java -jar jenkins-war --httpPort=8866
-#添加 Publish SSH 插件
+### ------
+# 磁盘情况
+df -hl
+#
+### ------
+##### apt-get update && apt-get upgrade
+apt-get update && apt-get upgrade
+### ------
 
-#新建项目 源码管理
-#构建环境
-#Send files or execute commands over SSH before the build starts  删除文件
-cd /alidata/blog/
-sudo rm -rf /alidata/blog/*
+##### iptables file2ban
+sudo iptables -F  #情况 iptables
+sudo vi /etc/iptable.up.rules
+### ------
+*filter
+# allow all connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+# allow all traffic
+-A OUTPUT -j ACCEPT
+#allow http https
+-A INPUT -p tcp --dport 443 -j ACCEPT
+-A INPUT -p tcp --dport 80 -j ACCEPT
+#allow ssh port login
+-A INPUT -p -tcp -m state --state NEW --dport 39999 -j ACCEPT
+#ping
+-A INPUT -p -icmp -m icmp --icmp-type 8 -j ACCEPT
+#log denied calls
+-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied:" --log-level 7
 
-#Provide Node & npm bin/ folder to PATH
+#drop incoming sensitive connections
+-A INPUT -p tcp --dport 80 -i eth0 -m state --state NEW -m recent--set
+-A INPUT -p tcp --dport 80 -i eth0 -m state --state NEW -m recent--update --seconds 60 --hitcount 150 -j DROP
 
-#Send files or execute commands over SSH after the build starts  解压文件
-cd /alidata/blog/
-unzip ./build.zip
+# reject all other inbound
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+COMMIT
+### ------ 设置iptable 文件
+iptables-restore < /etc/iptables.up.rules
+#启功防火墙
+ufw status
+ufw enable
+ufw status
 
-# # ssh.ppk  服务器密钥 start pscp.exe  -i  密钥  文件  root@服务器IP:文件位置
-start pscp.exe -i D:\Software\Jenkins\SSH\ssh.ppk  C:\Users\CS068MPC\.jenkins\workspace\aintelligen\build.7z root@127.0.0.1:/alidata/blog/
+### ------  mongodb
+apt-get install mongodb
+pgrep mongo -l
+sudo service mongodb stop 　　sudo service mongodb start
 
-#构建
-#Execute Windows batch command 构建项目
-npm -v && npm install && npm run build && npm run zip
-#Execute Windows batch command 上传文件到服务器
-# # ssh.ppk  服务器密钥 start pscp.exe  -i  密钥  文件  root@服务器IP:文件位置
-start pscp.exe -i D:\Software\Jenkins\SSH\ssh.ppk  C:\Users\CS068MPC\.jenkins\workspace\aintelligen\build.7z root@127.0.0.1:/alidata/blog/
+### ------ 网络监控  https://www.cnblogs.com/voiphudong/p/3985779.html
+apt-get install iftop
+### ------安装最新版node
+curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo apt install npm
 
+### ------ PM2
+npm install pm2 -g
+pm2 start server/server/.js --name LiveChat
+# start restart reload delete
 
+pm2 show LiveChat
+### ------
+### ------
+### ------
+### ------
+### ------
+### ------
+### ------
+### ------
+### ------
+### ------
+### ------
 ```
